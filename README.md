@@ -1,4 +1,4 @@
-<p align="center"><strong><font color="#d1242f">⚠️ UNDER DEVELOPMENT<br>Some features may be incomplete or may not work.<br>Use at your own risk.</font></strong></p>
+<p align="center"><img src="readme-development-warning.svg" alt="Under development: Some features may be incomplete or may not work. Use at your own risk." width="100%"></p>
 
 # ClaudeX — NVIDIA Nemotron Research Workspace
 
