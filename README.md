@@ -21,7 +21,9 @@ ClaudeX is a local-first research assistant with a Python backend, a browser int
 | `build_desktop_backend.py` | Packages the Python backend sidecar for desktop builds. |
 | `data/` | Local database and generated files for browser/server runs; do not commit user data. |
 
-<img src="readme-development-warning.svg" alt="Early Development Notice: This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk." width="700">
+**UNDER DEVELOPMENT**  
+Some features may be incomplete or may not work.  
+**Use at your own risk.**
 
 ## Features
 
