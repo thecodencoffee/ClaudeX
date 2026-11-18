@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#171717" />
+  <title>ClaudeX</title>
+  <script>
+    if (window.__TAURI__?.core?.invoke) {
+      const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      const remoteUrl = localStorage.getItem('claudex_remote_url') || '';
+      const remoteToken = localStorage.getItem('claudex_remote_token') || '';
+      if (remoteUrl && remoteToken) window.__CLAUDEX_REMOTE_API__ = remoteUrl;
+      document.addEventListener('submit', event => {
+        if (event.target.id !== 'connect') return;
+        event.preventDefault();
+        let url;
+        try { url = new URL(document.getElementById('server').value.trim()); }
+        catch { document.getElementById('error').textContent = 'Enter a valid HTTPS server address.'; return; }
+        const token = document.getElementById('token').value.trim();
+        if ((url.protocol !== 'https:' && url.hostname !== 'localhost') || url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
+          document.getElementById('error').textContent = 'Use a secure HTTPS server origin without a path.'; return;
+        }
+        if (token.length < 32) { document.getElementById('error').textContent = 'The access token must contain at least 32 characters.'; return; }
+        localStorage.setItem('claudex_remote_url', url.origin);
+        localStorage.setItem('claudex_remote_token', token);
+        location.reload();
+      });
+      window.__TAURI__.core.invoke('start_backend').then(url => {
+        if (url !== 'remote') { location.replace(url); return; }
+        window.__CLAUDEX_REMOTE_MODE__ = true;
+        window.dispatchEvent(new Event('claudex-remote-ready'));
+        if (remoteUrl && remoteToken) return;
+        document.documentElement.innerHTML = '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#171717"><title>Connect ClaudeX</title></head><body style="margin:0;background:#171717;color:#eee;font:14px system-ui;display:grid;place-items:center;min-height:100dvh"><form id="connect" style="width:min(420px,calc(100% - 40px));display:grid;gap:12px;padding:24px;background:#222;border:1px solid #383838;border-radius:16px"><h1 style="font-size:22px;margin:0">Connect to ClaudeX</h1><p style="color:#aaa;line-height:1.5;margin:0">Enter your ClaudeX server’s HTTPS address and access token. Your token is stored only on this device.</p><label>Server URL<input id="server" type="url" required placeholder="https://claudex.example.com" style="display:block;box-sizing:border-box;width:100%;margin-top:6px;padding:11px;background:#171717;color:#eee;border:1px solid #444;border-radius:8px"></label><label>Access token<input id="token" type="password" required autocomplete="off" style="display:block;box-sizing:border-box;width:100%;margin-top:6px;padding:11px;background:#171717;color:#eee;border:1px solid #444;border-radius:8px"></label><div id="error" style="color:#f18d92"></div><button style="height:40px;border:0;border-radius:8px;background:#d9eaff;color:#15191e;font-weight:600">Connect</button></form></body>';
+      }).catch(error => {
+        document.documentElement.innerHTML = '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ClaudeX</title></head><body style="margin:0;background:#171717;color:#ddd;font:14px system-ui;display:grid;place-items:center;height:100vh"><div>ClaudeX could not start: <small style="color:#aaa">' + escapeHtml(error) + '</small></div></body>';
+      });
+    }
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/static/claude-mark.svg?v=20261116-browser-favicon-1" />
+  <link rel="stylesheet" href="/static/app.css?v=20261117-readable-citations-1" />
+  <script>
+    window.MathJax = { tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true}, options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}, startup:{typeset:false} };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script defer src="/static/app.js?v=20261117-readable-citations-1"></script>
+</head>
+<body class="welcome-mode">
+<input id="autoThink" type="checkbox" checked hidden />
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <button class="brand" id="homeButton" aria-label="ClaudeX home"><img class="brand-claude-mark" src="/static/claude-mark.svg?v=20261116-claude-blue" alt="" aria-hidden="true"><span>ClaudeX</span></button>
+      <button class="icon-button" id="closeSidebar" aria-label="Close sidebar">×</button>
+    </div>
+    <button class="new-chat-btn" id="newChatWide"><span>＋</span> New chat</button>
+    <nav class="side-nav" aria-label="Workspace">
+      <button class="side-link selected" id="historyNav"><span class="nav-symbol">◷</span> Chats</button>
+    </nav>
+    <div class="history-heading"><span>Recent</span><button id="refreshHistory" class="icon-button" title="Refresh chats">↻</button></div>
+    <div class="conversation-list" id="conversationList"></div>
+    <div class="sidebar-bottom">
+      <button class="side-link settings-link" id="settingsNav"><span class="nav-symbol">⚙</span> Settings</button>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <button class="icon-button" id="openSidebar" aria-label="Open sidebar">☰</button>
+      <div class="conversation-title" id="workspaceTitle">New chat</div>
+      <div class="topbar-spacer"></div>
+    </header>
+    <section class="chat-workspace">
+      <div class="message-feed" id="messageFeed">
+        <section class="welcome-screen" id="welcomeScreen">
+          <h1 id="welcomeGreeting"><img class="welcome-claude-mark" src="/static/claude-mark.svg?v=20261116-claude-blue" alt="" aria-hidden="true"><span>What can I help with?</span></h1>
+        </section>
+      </div>
+      <div class="composer-area">
+        <div class="composer-shell">
+          <textarea id="promptInput" rows="1" placeholder="How can I help you today?" aria-label="Message ClaudeX"></textarea>
+          <div class="composer-bottom">
+            <div class="composer-left-controls">
+              <div class="add-files-control">
+                <button class="composer-icon" id="addFiles" type="button" title="Add files" aria-label="Add files" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+                <div class="add-files-menu" id="addFilesMenu" hidden>
+                  <button id="uploadFiles" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.5 12.5 7.1-7.1a3.2 3.2 0 0 1 4.5 4.5l-9.2 9.2a5.2 5.2 0 0 1-7.4-7.4l9-9"/></svg><span>Upload files</span><kbd>Ctrl+U</kbd></button>
+                </div>
+                <input id="fileInput" type="file" hidden multiple accept=".txt,.md,.rst,.csv,.tsv,.json,.yaml,.yml,.xml,.html,.htm,.py,.js,.ts,.tsx,.jsx,.css,.sql,.sh,.toml,.ini,.log,.tex,.java,.go,.rs,.c,.h,.cpp,.hpp,.rb,.php,.swift,.pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.webp,.tif,.tiff,.bmp" />
+              </div>
+              <button class="mode-button selected" id="chatMode" type="button">Chat</button>
+              <button class="mode-button" id="researchMode" type="button">Research</button>
+              <button class="mode-button" id="councilMode" type="button" aria-pressed="false" title="Ask two NVIDIA models to review in parallel">Council</button>
+            </div>
+            <div class="composer-right-controls">
+              <div class="model-control">
+                <button id="modelPicker" class="model-picker" type="button" aria-haspopup="dialog" aria-expanded="false">
+                  <span id="modelPickerName" class="model-picker-name">Nemotron 3.5 Lightning</span><span id="modelEffortLabel" class="model-effort-label">Medium</span><svg class="picker-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                </button>
+                <div id="modelMenu" class="model-menu" hidden>
+                  <div class="model-options" id="modelOptions"></div>
+                  <button class="effort-row" id="effortPicker" type="button" aria-haspopup="dialog" aria-expanded="false"><span>Effort</span><span><span id="effortValue">Medium</span><svg class="menu-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></span></button>
+                </div>
+                <div id="effortMenu" class="effort-menu" hidden></div>
+              </div>
+              <button class="send-btn" id="sendBtn" title="Send message" aria-label="Send message"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15V5m0 0L5.8 9.2M10 5l4.2 4.2"/></svg></button>
+            </div>
+          </div>
+          <div class="attachment-tray" id="attachmentTray" hidden></div>
+        </div>
+        <div class="suggestion-row" id="suggestionRow">
+          <button class="suggestion-chip" data-prompt="Help me write something clear and polished."><span>✎</span> Write</button>
+          <button class="suggestion-chip" data-prompt="Teach me this topic step by step, with examples."><span>◇</span> Learn</button>
+          <button class="suggestion-chip" data-prompt="Help me design and implement a software solution."><span>‹/›</span> Code</button>
+          <button class="suggestion-chip" data-prompt="Help me plan something in my life."><span>☕</span> Life stuff</button>
+        </div>
+        <div class="disclaimer">ClaudeX can make mistakes. Check important information against reliable sources.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <button class="modal-close" data-close="settingsModal" aria-label="Close">×</button>
+    <div class="modal-kicker">CLAUDEX SETTINGS</div>
+    <h2 id="settingsTitle">Model and preferences</h2>
+    <p class="modal-copy">ClaudeX uses NVIDIA-hosted models. This application does not connect to Anthropic Claude.</p>
+    <label class="field-label" for="apiKey">NVIDIA API key</label>
+    <div class="key-input-wrap"><input type="password" id="apiKey" autocomplete="off" placeholder="nvapi-…"/><button id="showKey" class="reveal-btn" type="button">Show</button></div>
+    <div class="field-help" id="keyHelp"></div>
+    <section class="mobile-connection-settings" id="mobileConnectionSettings" hidden>
+      <label class="field-label" for="remoteServerUrl">Mobile server URL</label>
+      <input id="remoteServerUrl" class="server-input" type="url" placeholder="https://claudex.example.com" autocomplete="url" />
+      <label class="field-label" for="remoteAccessToken">Mobile access token</label>
+      <input id="remoteAccessToken" class="server-input" type="password" placeholder="32+ character token" autocomplete="off" />
+      <div class="field-help">The mobile app connects to your ClaudeX server over HTTPS. The token is stored on this device.</div>
+      <button id="saveMobileConnection" class="secondary-btn" type="button">Save mobile connection</button>
+    </section>
+    <label class="field-label" for="displayName">Your name (optional)</label>
+    <div class="key-input-wrap"><input id="displayName" maxlength="48" autocomplete="nickname" placeholder="Name for your greeting"/><button id="saveDisplayName" class="reveal-btn" type="button">Save</button></div>
+    <div class="modal-actions"><button class="secondary-btn" id="testConnection" type="button">Test connection</button><button class="primary-btn" id="saveSettings" type="button">Save settings</button></div>
+    <div class="connection-status" id="connectionStatus"></div>
+  </section>
+</div>
+<div class="modal-backdrop" id="memoryModal" aria-hidden="true">
+  <section class="modal-card memory-card" role="dialog" aria-modal="true" aria-labelledby="memoryTitle">
+    <button class="modal-close" data-close="memoryModal" aria-label="Close">×</button>
+    <div class="modal-kicker">PERSONAL CONTEXT</div><h2 id="memoryTitle">Saved memory</h2>
+    <p class="modal-copy">ClaudeX keeps selected project context and stable preferences, not every message.</p>
+    <div class="memory-list" id="memoryList"></div>
+    <div class="modal-actions"><button class="danger-btn" id="clearMemories" type="button">Clear memory</button><button class="secondary-btn" data-close="memoryModal" type="button">Done</button></div>
+  </section>
+</div>
+<div class="modal-backdrop delete-confirm-backdrop" id="deleteConfirmModal" aria-hidden="true">
+  <section class="modal-card delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" aria-describedby="deleteConfirmDescription">
+    <h2 id="deleteConfirmTitle">Delete this chat?</h2>
+    <p class="delete-confirm-name" id="deleteConfirmName"></p>
+    <p class="modal-copy" id="deleteConfirmDescription">Its messages, research history, attachments, and generated files will be permanently deleted. This action cannot be undone.</p>
+    <div class="modal-actions delete-confirm-actions"><button class="secondary-btn" id="cancelDeleteChat" type="button">Cancel</button><button class="danger-btn" id="confirmDeleteChat" type="button">Delete permanently</button></div>
+  </section>
+</div>
+<div class="toast-stack" id="toastStack"></div>
+</body>
+</html>

@@ -1,0 +1,162 @@
+import { Button, LineEdit, ScrollView } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "ClaudeX";
+    background: #171717;
+    preferred-width: 420px;
+    preferred-height: 820px;
+
+    in-out property <bool> connected: false;
+    in-out property <string> status: "Connect to your ClaudeX server.";
+    in-out property <string> transcript: "";
+    in-out property <string> selected_mode: "chat";
+    in-out property <string> server_url: "";
+    in-out property <string> access_token: "";
+    in-out property <[string]> conversation-titles: [];
+
+    callback connect-request(string, string);
+    callback new-chat-request;
+    callback refresh-chats-request;
+    callback conversation-selected(int);
+    callback send-request(string, string);
+    callback settings-request;
+
+    if !root.connected: VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: center;
+
+        Rectangle {
+            height: 1px;
+            background: transparent;
+        }
+        Text {
+            text: "✳ ClaudeX";
+            color: #e8e8e8;
+            font-size: 30px;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: "Connect to your ClaudeX server";
+            color: #a5a5a5;
+            font-size: 15px;
+            horizontal-alignment: center;
+        }
+
+        server-input := LineEdit {
+            placeholder-text: "https://your-claudex-server";
+            vertical-stretch: 0;
+            text <=> root.server_url;
+        }
+        token-input := LineEdit {
+            placeholder-text: "32+ character access token";
+            input-type: password;
+            vertical-stretch: 0;
+            text <=> root.access_token;
+        }
+        Button {
+            text: "Connect";
+            clicked => root.connect-request(server-input.text, token-input.text);
+        }
+        Text {
+            text: root.status;
+            color: #b5b5b5;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: "The server URL must use HTTPS. Connection details are stored in this app's private data.\nMade with Slint";
+            color: #777777;
+            font-size: 12px;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+    }
+
+    if root.connected: VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                text: "✳ ClaudeX";
+                color: #e8e8e8;
+                font-size: 21px;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            Button {
+                text: "New chat";
+                clicked => root.new-chat-request();
+            }
+            Button {
+                text: "↻";
+                clicked => root.refresh-chats-request();
+            }
+            Button {
+                text: "Settings";
+                clicked => root.settings-request();
+            }
+        }
+
+        ScrollView {
+            height: 42px;
+            HorizontalLayout {
+                spacing: 6px;
+                for title[index] in root.conversation-titles: Button {
+                    text: title;
+                    clicked => root.conversation-selected(index);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 6px;
+            Button {
+                text: "Chat";
+                clicked => { root.selected_mode = "chat"; }
+            }
+            Button {
+                text: "Research";
+                clicked => { root.selected_mode = "research"; }
+            }
+            Button {
+                text: "Council";
+                clicked => { root.selected_mode = "council"; }
+            }
+        }
+
+        Text {
+            text: root.status;
+            color: #a5a5a5;
+            font-size: 12px;
+            wrap: word-wrap;
+        }
+
+        ScrollView {
+            vertical-stretch: 1;
+            content-width: self.width;
+            Text {
+                text: root.transcript;
+                color: #e4e4e4;
+                font-size: 15px;
+                wrap: word-wrap;
+                width: parent.width;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            message-input := LineEdit {
+                placeholder-text: "How can I help today?";
+                horizontal-stretch: 1;
+                accepted => root.send-request(self.text, root.selected_mode);
+            }
+            Button {
+                text: "↑";
+                clicked => root.send-request(message-input.text, root.selected_mode);
+            }
+        }
+    }
+}

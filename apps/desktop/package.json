@@ -1,0 +1,16 @@
+{
+  "name": "claudex-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "desktop:dev": "cargo run --manifest-path iced/Cargo.toml",
+    "desktop:build": "python ../../build_desktop_backend.py && cargo build --release --manifest-path iced/Cargo.toml",
+    "android:dev": "cd ../android && cargo apk2 run --target aarch64-linux-android --lib",
+    "android:build": "cd ../android && cargo apk2 build --target aarch64-linux-android --lib --release"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.5"
+  }
+}
