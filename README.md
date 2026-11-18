@@ -1,5 +1,3 @@
-<img src="readme-development-warning.svg" alt="UNDER DEVELOPMENT. Some features may be incomplete or may not work. Use at your own risk." width="700">
-
 # ClaudeX — NVIDIA Nemotron Research Workspace
 
 ClaudeX is a local-first research assistant with a Python backend, a browser interface, a Rust desktop client, and an Android client. Chat inference uses NVIDIA-hosted Nemotron models. The project includes persistent conversations, web search, source retrieval, symbolic mathematics, streamed answers, and research tools.
@@ -22,6 +20,8 @@ ClaudeX is a local-first research assistant with a Python backend, a browser int
 | `requirements*.txt` | Runtime, development, and desktop packaging dependencies. |
 | `build_desktop_backend.py` | Packages the Python backend sidecar for desktop builds. |
 | `data/` | Local database and generated files for browser/server runs; do not commit user data. |
+
+<img src="readme-development-warning.svg" alt="Early Development Notice: This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk." width="700">
 
 ## Features
 

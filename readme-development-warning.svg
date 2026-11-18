@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="700" height="66" viewBox="0 0 700 66" role="img" aria-labelledby="title">
-  <title id="title">Under development. Some features may be incomplete or may not work. Use at your own risk.</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="48" viewBox="0 0 900 48" role="img" aria-labelledby="title">
+  <title id="title">Early Development Notice: This project is in early development and is not yet ready for production use. Features may change, break, or be incomplete. Use at your own risk.</title>
   <g fill="#d1242f" font-family="Arial, Helvetica, sans-serif" font-size="14">
-    <text x="0" y="16" font-weight="700">UNDER DEVELOPMENT</text>
-    <text x="0" y="38">Some features may be incomplete or may not work.</text>
-    <text x="0" y="60" font-weight="700">Use at your own risk.</text>
+    <text x="0" y="16"><tspan font-weight="700">Early Development Notice:</tspan> This project is in early development and is not yet ready for production</text>
+    <text x="0" y="38">use. Features may change, break, or be incomplete. Use at your own risk.</text>
   </g>
 </svg>
